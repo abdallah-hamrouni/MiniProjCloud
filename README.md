@@ -263,3 +263,7 @@ le code HTTP et la réponse :
 - Docker : image construite et mêmes vérifications HTTP réussies avec le port
   par défaut `8000`, puis avec `PORT=10000`.
 - Publication GitHub et déploiement Render : **à effectuer avec vos comptes**.
+
+## URL render
+
+https://miniprojcloud.onrender.com/docs

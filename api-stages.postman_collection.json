@@ -1,0 +1,494 @@
+{
+  "info": {
+    "name": "API Stages - Tests locaux",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Démarrer l'API avec API_KEY configurée, puis renseigner la variable locale api_key dans Postman avec la même clé. Ne pas partager ni exporter la clé réelle. Exécuter les requêtes 01 à 11 dans l'ordre. La clé est envoyée dans X-API-Key ; stage_id est mémorisé après création. Le scénario crée un stage fictif dans la base de l'API, le modifie puis le supprime. Les requêtes 10 et 11 doivent retourner 401."
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "",
+      "type": "string",
+      "description": "Clé privée à renseigner localement uniquement. Ne pas partager/exporter sa valeur."
+    },
+    {
+      "key": "stage_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test(\"La réponse ne doit pas être mise en cache\", function () {",
+          "    pm.expect(pm.response.headers.get(\"Cache-Control\")).to.equal(\"no-store\");",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Créer un stage",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/stages",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom_etudiant\": \"Étudiant Démo\",\n  \"entreprise\": \"Entreprise Exemple\",\n  \"intitule\": \"Développement API REST\",\n  \"date_debut\": \"2026-04-01\",\n  \"date_fin\": \"2026-06-30\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.unset(\"stage_id\");"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test(\"Le stage créé correspond au JSON envoyé\", function () {",
+              "    const data = pm.response.json();",
+              "    pm.expect(data.id).to.be.a(\"number\").and.above(0);",
+              "    pm.expect(data).to.deep.equal({...JSON.parse(pm.request.body.raw), id: data.id});",
+              "});",
+              "if (pm.response.code === 201) {",
+              "    pm.collectionVariables.set(\"stage_id\", String(pm.response.json().id));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "02 - Lister les stages",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/stages"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"La liste contient le stage créé\", function () {",
+              "    const stages = pm.response.json();",
+              "    pm.expect(stages).to.be.an(\"array\");",
+              "    pm.expect(stages.map(stage => stage.id)).to.include(Number(pm.collectionVariables.get(\"stage_id\")));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "03 - Consulter le stage",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/stages/{{stage_id}}"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get(\"stage_id\");",
+              "if (!id || !/^[1-9][0-9]*$/.test(String(id))) {",
+              "    throw new Error(\"Exécuter d'abord la requête 01 avec une clé API valide.\");",
+              "}",
+              "pm.variables.set(\"stage_id\", id);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Les données du stage sont correctes\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal({",
+              "        ...{\"nom_etudiant\":\"Étudiant Démo\",\"entreprise\":\"Entreprise Exemple\",\"intitule\":\"Développement API REST\",\"date_debut\":\"2026-04-01\",\"date_fin\":\"2026-06-30\"},",
+              "        id: Number(pm.collectionVariables.get(\"stage_id\"))",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "04 - Modifier le stage",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/stages/{{stage_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom_etudiant\": \"Étudiant Démo\",\n  \"entreprise\": \"Entreprise Exemple\",\n  \"intitule\": \"API REST sécurisée et testée\",\n  \"date_debut\": \"2026-04-01\",\n  \"date_fin\": \"2026-06-30\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get(\"stage_id\");",
+              "if (!id || !/^[1-9][0-9]*$/.test(String(id))) {",
+              "    throw new Error(\"Exécuter d'abord la requête 01 avec une clé API valide.\");",
+              "}",
+              "pm.variables.set(\"stage_id\", id);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Les données du stage sont correctes\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal({",
+              "        ...{\"nom_etudiant\":\"Étudiant Démo\",\"entreprise\":\"Entreprise Exemple\",\"intitule\":\"API REST sécurisée et testée\",\"date_debut\":\"2026-04-01\",\"date_fin\":\"2026-06-30\"},",
+              "        id: Number(pm.collectionVariables.get(\"stage_id\"))",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "05 - Vérifier la modification",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/stages/{{stage_id}}"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get(\"stage_id\");",
+              "if (!id || !/^[1-9][0-9]*$/.test(String(id))) {",
+              "    throw new Error(\"Exécuter d'abord la requête 01 avec une clé API valide.\");",
+              "}",
+              "pm.variables.set(\"stage_id\", id);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Les données du stage sont correctes\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal({",
+              "        ...{\"nom_etudiant\":\"Étudiant Démo\",\"entreprise\":\"Entreprise Exemple\",\"intitule\":\"API REST sécurisée et testée\",\"date_debut\":\"2026-04-01\",\"date_fin\":\"2026-06-30\"},",
+              "        id: Number(pm.collectionVariables.get(\"stage_id\"))",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "06 - Rejeter des dates incohérentes",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/stages",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom_etudiant\": \"Étudiant Démo\",\n  \"entreprise\": \"Entreprise Exemple\",\n  \"intitule\": \"Développement API REST\",\n  \"date_debut\": \"2026-04-01\",\n  \"date_fin\": \"2026-03-31\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 422\", function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "pm.test(\"Les dates invalides sont refusées\", function () {",
+              "    pm.expect(pm.response.json().detail).to.be.an(\"array\").that.is.not.empty;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "07 - Rejeter un champ obligatoire absent",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/stages",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nom_etudiant\": \"Étudiant Démo\",\n  \"intitule\": \"Développement API REST\",\n  \"date_debut\": \"2026-04-01\",\n  \"date_fin\": \"2026-06-30\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 422\", function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "pm.test(\"Le champ entreprise est obligatoire\", function () {",
+              "    pm.expect(pm.response.json().detail.some(error => error.loc.includes(\"entreprise\") && error.type === \"missing\")).to.equal(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "08 - Supprimer le stage",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/stages/{{stage_id}}"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get(\"stage_id\");",
+              "if (!id || !/^[1-9][0-9]*$/.test(String(id))) {",
+              "    throw new Error(\"Exécuter d'abord la requête 01 avec une clé API valide.\");",
+              "}",
+              "pm.variables.set(\"stage_id\", id);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 204\", function () {",
+              "    pm.response.to.have.status(204);",
+              "});",
+              "pm.test(\"La réponse est vide\", function () {",
+              "    pm.expect(pm.response.text()).to.equal(\"\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "09 - Vérifier que le stage est introuvable",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/stages/{{stage_id}}"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.collectionVariables.get(\"stage_id\");",
+              "if (!id || !/^[1-9][0-9]*$/.test(String(id))) {",
+              "    throw new Error(\"Exécuter d'abord la requête 01 avec une clé API valide.\");",
+              "}",
+              "pm.variables.set(\"stage_id\", id);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 404\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "pm.test(\"Le stage est introuvable\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal({detail:\"Stage introuvable.\"});",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "10 - Refuser une clé absente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/stages",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "pm.test(\"Une authentification est requise\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal({detail:\"Clé API absente ou invalide.\"});",
+              "    pm.expect(pm.response.headers.get(\"WWW-Authenticate\")).to.equal(\"APIKey\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "11 - Refuser une clé incorrecte",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "cle-volontairement-incorrecte"
+          }
+        ],
+        "url": "{{base_url}}/stages",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Code HTTP 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "pm.test(\"La clé incorrecte est refusée\", function () {",
+              "    pm.expect(pm.response.json()).to.deep.equal({detail:\"Clé API absente ou invalide.\"});",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

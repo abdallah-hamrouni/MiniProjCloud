@@ -1,17 +1,19 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from database import Base, engine, get_db
 from models import Stage
 from schemas import StageInput, StageRead
+from security import load_api_key, require_api_key
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.api_key = load_api_key()
     Base.metadata.create_all(bind=engine)
     yield
 
@@ -21,9 +23,21 @@ app = FastAPI(
     description="Mini-projet : développer et déployer une API REST dans le Cloud.",
     version="1.0.0",
     lifespan=lifespan,
+    dependencies=[Depends(require_api_key)],
+    responses={401: {"description": "Clé API absente ou invalide."}},
 )
 
 DbSession = Annotated[Session, Depends(get_db)]
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
 
 
 def get_stage_or_404(id: int, db: Session) -> Stage:

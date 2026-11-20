@@ -238,22 +238,19 @@ L'option `--rm` le supprime automatiquement après son arrêt.
 
 ## Publication sur GitHub et déploiement sur Render
 
-Le projet est préparé pour le déploiement ; aucun dépôt distant ni service Render
-n'a été créé pendant sa réalisation. Les étapes ci-dessous sont à effectuer
-avec vos comptes.
+Le projet est préparé pour le déploiement. Le dépôt local est déjà relié à
+[MiniProjCloud sur GitHub](https://github.com/abdallah-hamrouni/MiniProjCloud.git).
+Le déploiement Render reste à effectuer avec votre compte.
 
 ### 1. Envoyer les sources sur GitHub
 
-Créer un dépôt GitHub vide nommé `mini-projet-cloud`, sans README initial.
-Depuis le dossier du projet, remplacer `VOTRE_COMPTE` dans les commandes :
+Depuis le dossier du projet, enregistrer puis envoyer les modifications sur
+la branche `main` avant de lancer le déploiement :
 
 ```bash
-git init
 git add main.py database.py models.py schemas.py security.py requirements.txt test_main.py api-stages.postman_collection.json Dockerfile .dockerignore .gitignore README.md
-git commit -m "Créer l'API de gestion des stages"
-git branch -M main
-git remote add origin https://github.com/VOTRE_COMPTE/mini-projet-cloud.git
-git push -u origin main
+git commit -m "Sécuriser l'API et préparer le déploiement Render"
+git push origin main
 ```
 
 Ne publier ni la base SQLite ni de données personnelles réelles.
@@ -262,7 +259,8 @@ Ne publier ni la base SQLite ni de données personnelles réelles.
 
 1. Se connecter à [Render](https://dashboard.render.com/), choisir **New → Web
    Service**, connecter GitHub et autoriser l'accès au dépôt.
-2. Sélectionner le dépôt et renseigner les paramètres suivants :
+2. Sélectionner le dépôt `abdallah-hamrouni/MiniProjCloud` et renseigner les
+   paramètres suivants :
 
 | Paramètre | Valeur |
 | --- | --- |
@@ -284,6 +282,10 @@ Ne publier ni la base SQLite ni de données personnelles réelles.
 4. Copier l'URL HTTPS fournie par Render, ouvrir cette URL suivie de `/docs` et
    cliquer sur **Authorize** pour renseigner la clé Render, puis reproduire le
    cycle CRUD. Une consultation directe de `/stages` sans clé doit retourner `401`.
+5. Dans Postman, remplacer `http://localhost:8000` par cette URL HTTPS et utiliser
+   la clé configurée sur Render dans l'en-tête `X-API-Key`. Avec la collection,
+   modifier `base_url` et `api_key`, puis rejouer les requêtes 01 à 11. La base
+   Render est distincte de celle du PC : commencer par créer un stage fictif.
 
 Ces paramètres suivent le [guide Docker de Render](https://render.com/docs/docker)
 et le [guide de premier déploiement](https://render.com/docs/your-first-deploy).

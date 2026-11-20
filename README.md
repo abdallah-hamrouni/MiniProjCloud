@@ -346,4 +346,4 @@ le code HTTP et la réponse :
 
 ## URL render
 
-https://miniprojcloud-isis.onrender.com/docs
+https://swagger-isis.onrender.com/docs

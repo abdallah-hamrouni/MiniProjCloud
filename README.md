@@ -343,3 +343,7 @@ le code HTTP et la réponse :
 - Collection Postman : JSON, corps de requêtes et syntaxe des scripts vérifiés.
   L'importation et l'exécution dans l'application Postman restent à faire.
 - Publication GitHub et déploiement Render : **à effectuer avec vos comptes**.
+
+## URL render
+
+https://miniprojcloud.onrender.com/docs
